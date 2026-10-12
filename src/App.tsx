@@ -58,32 +58,39 @@ export function App() {
     if (unavailable.length) console.warn('Fuentes institucionales no confirmadas para exportacion:', unavailable)
     await Promise.all(Array.from(canvasRef.current.querySelectorAll('img')).map(image => image.complete ? image.decode().catch(() => undefined) : new Promise<void>(resolve => { image.addEventListener('load', () => resolve(), { once: true }); image.addEventListener('error', () => resolve(), { once: true }) })))
   }
-  const renderArtifacts = async (pixelRatio = 1) => {
+  const captureCanvasPng = async (pixelRatio: number) => {
     if (!canvasRef.current) throw new Error('No se encontro el lienzo para generar archivos.')
-    await waitForCanvasAssets()
-    if (flyer.qrMode === 'url' && flyer.qrUrl && !validQrUrl(flyer.qrUrl)) throw new Error('El enlace del codigo QR debe usar http:// o https://.')
-    if (flyer.qrMode === 'url' && validQrUrl(flyer.qrUrl)) { setQrData(await createQrData(flyer.qrUrl)); await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))) }
     const pngData = await toPng(canvasRef.current, { pixelRatio, width: 1080, height: 1350, cacheBust: true, style: { transform: 'none', marginRight: '0', marginBottom: '0' } })
     const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => { const image = new Image(); image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight }); image.onerror = () => reject(new Error('No se pudo verificar la resolucion PNG.')); image.src = pngData })
     if (dimensions.width !== 1080 * pixelRatio || dimensions.height !== 1350 * pixelRatio) throw new Error(`Resolucion PNG inesperada: ${dimensions.width} x ${dimensions.height}.`)
+    return pngData
+  }
+  const renderArtifacts = async (pngPixelRatio = 1, includePdf = true) => {
+    await waitForCanvasAssets()
+    if (flyer.qrMode === 'url' && flyer.qrUrl && !validQrUrl(flyer.qrUrl)) throw new Error('El enlace del codigo QR debe usar http:// o https://.')
+    if (flyer.qrMode === 'url' && validQrUrl(flyer.qrUrl)) { setQrData(await createQrData(flyer.qrUrl)); await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))) }
+    const pngData = await captureCanvasPng(pngPixelRatio)
     const png = await (await fetch(pngData)).blob()
+    if (!includePdf) return { pngData, png, pdf: undefined }
+    // Render the PDF source again at 3x; it is sharper but remains a raster PDF.
+    const pdfPngData = await captureCanvasPng(3)
     const pdf = await PDFDocument.create()
     const page = pdf.addPage([1080, 1350])
-    page.drawImage(await pdf.embedPng(pngData), { x: 0, y: 0, width: 1080, height: 1350 })
+    page.drawImage(await pdf.embedPng(pdfPngData), { x: 0, y: 0, width: 1080, height: 1350 })
     return { pngData, png, pdf: new Blob([await pdf.save()], { type: 'application/pdf' }) }
   }
   const save = async (asNew = false) => {
-    try { setStatus('Guardando datos y generando archivos...'); let candidate = asNew ? { ...flyer, id: undefined, name: `${flyer.name} copia` } : flyer; if (candidate.image?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.image); candidate = { ...candidate, image: uploaded.url, imagePath: uploaded.path } } if (candidate.qrMode === 'image' && candidate.qrImage?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.qrImage); candidate = { ...candidate, qrImage: uploaded.url, qrPath: uploaded.path } } const saved = await saveFlyer(candidate); const artifacts = await renderArtifacts(); const completed = await saveFlyer({ ...saved, ...await saveFlyerArtifacts(saved, artifacts.png, artifacts.pdf) }); setFlyer(completed); await refresh(); setStatus('Diseno, PNG y PDF guardados.'); }
+    try { setStatus('Guardando datos y generando archivos...'); let candidate = asNew ? { ...flyer, id: undefined, name: `${flyer.name} copia` } : flyer; if (candidate.image?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.image); candidate = { ...candidate, image: uploaded.url, imagePath: uploaded.path } } if (candidate.qrMode === 'image' && candidate.qrImage?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.qrImage); candidate = { ...candidate, qrImage: uploaded.url, qrPath: uploaded.path } } const saved = await saveFlyer(candidate); const artifacts = await renderArtifacts(); if (!artifacts.pdf) throw new Error('No se pudo generar el PDF.'); const completed = await saveFlyer({ ...saved, ...await saveFlyerArtifacts(saved, artifacts.png, artifacts.pdf) }); setFlyer(completed); await refresh(); setStatus('Diseno, PNG y PDF guardados.'); }
     catch (e) { setStatus(errorText(e)) }
   }
   const exportPng = async (pixelRatio = 1) => {
     if (!canvasRef.current) return
-    try { const { pngData } = await renderArtifacts(pixelRatio); download(pngData, `${filename(flyer.name)}${pixelRatio > 1 ? `-${pixelRatio}x` : ''}.png`); }
+    try { const { pngData } = await renderArtifacts(pixelRatio, false); download(pngData, `${filename(flyer.name)}${pixelRatio > 1 ? `-${pixelRatio}x` : ''}.png`); }
     catch (e) { setStatus(`No se pudo exportar PNG: ${errorText(e)}`) }
   }
   const exportPdf = async () => {
     if (!canvasRef.current) return
-    try { const { pdf } = await renderArtifacts(); download(URL.createObjectURL(pdf), `${filename(flyer.name)}.pdf`); }
+    try { const { pdf } = await renderArtifacts(); if (!pdf) throw new Error('No se pudo generar el PDF.'); download(URL.createObjectURL(pdf), `${filename(flyer.name)}.pdf`); }
     catch (e) { setStatus(`No se pudo exportar PDF: ${errorText(e)}`) }
   }
   const login = async (event: React.FormEvent) => { event.preventDefault(); if (!supabase) return; const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) setStatus(error.message) }

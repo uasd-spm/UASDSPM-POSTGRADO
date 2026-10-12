@@ -2,7 +2,7 @@
 
 `exportPng()` espera fuentes e imagenes, elimina la transformacion de vista previa y llama `toPng` sobre `FlyerCanvas` con 1080 x 1350. Descarga solo el flyer.
 
-`exportPdf()` vuelve a generar ese PNG, crea una pagina `1080 x 1350` con `pdf-lib` y dibuja la imagen embebida. Por tanto el PDF actual es raster, no un PDF vectorial de texto/SVG. Al Guardar, ambos blobs se almacenan sin descarga; con Supabase usan rutas fijas por diseno y con modo local IndexedDB.
+`exportPdf()` vuelve a renderizar el canvas a 3240 x 4050 (3x), crea una pagina `1080 x 1350` con `pdf-lib` y dibuja esa imagen embebida. El PDF actual es raster, no PDF vectorial de texto/SVG, pero ya no reutiliza el PNG estandar de 1080 x 1350. Al Guardar, ambos blobs se almacenan sin descarga; con Supabase usan rutas fijas por diseno y con modo local IndexedDB.
 
 Para QR por URL, la exportacion valida `http://`/`https://`, crea el Data URL con correccion `H`, margen 2, negro sobre blanco y espera dos frames de render antes de capturar el canvas.
 

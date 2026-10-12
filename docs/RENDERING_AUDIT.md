@@ -9,7 +9,7 @@
 | Facultad Humanidades | Vectorial | 49 `path`, 0 `image`, 0 `text`, 0 raster embebido. |
 | B. Encabezado del editor | Pendiente de navegador | Se inserta como `<img src={headerNavUrl}>`; la previsualizacion aplica `transform: scale()`. |
 | C. PNG | Corregido en codigo, pendiente de archivo real | Se captura sin `transform`, desde 1080 x 1350; valida dimensiones. |
-| D. PDF | Raster confirmado | `pdf-lib` incrusta el PNG completo con `embedPng`. |
+| D. PDF | Raster confirmado; fuente elevada a 3x | `pdf-lib` incrusta un PNG 3240 x 4050 con `embedPng`. |
 
 ## Causa raiz
 
@@ -17,7 +17,7 @@ Los SVG institucionales auditados no contienen raster incrustado. La suavidad ob
 
 ## Cambios realizados
 
-`renderArtifacts()` elimina `transform` y margenes de escala durante `html-to-image`, espera fuentes/imágenes, revisa fuentes con `document.fonts.check()` y valida el tamaño natural del PNG. Se agrego PNG 2x, que vuelve a renderizar el DOM con `pixelRatio: 2` para 2160 x 2700, sin ampliar un PNG existente.
+`renderArtifacts()` elimina `transform` y margenes de escala durante `html-to-image`, espera fuentes/imágenes, revisa fuentes con `document.fonts.check()` y valida el tamaño natural del PNG. Se agrego PNG 2x, que vuelve a renderizar el DOM con `pixelRatio: 2` para 2160 x 2700, sin ampliar un PNG existente. El PDF vuelve a renderizar el canvas a 3x (3240 x 4050) antes de incrustarlo.
 
 ## Fuentes
 
@@ -25,7 +25,7 @@ El CSS carga Gotham Book/Bold/Black y OLDENGLISH UASD desde rutas relativas. Tra
 
 ## Plan PDF hibrido
 
-`pdf-lib` no convierte por si solo el DOM, fuentes CSS y SVG `<img>` en un PDF vectorial preservando fidelidad. Una migracion hibrida requeriria reproducir manualmente cada texto, path SVG, degradado y fotografia mediante una biblioteca PDF compatible con navegador, y validar fuentes/licencias. Hasta entonces se conserva el PDF raster de PNG para no alterar composicion. No se ha implementado ni validado exportacion vectorial.
+`pdf-lib` no convierte por si solo el DOM, fuentes CSS y SVG `<img>` en un PDF vectorial preservando fidelidad. Una migracion hibrida requeriria reproducir manualmente cada texto, path SVG, degradado y fotografia mediante una biblioteca PDF compatible con navegador, y validar fuentes/licencias. Hasta entonces se conserva el PDF raster de PNG a 3x para no alterar composicion. No es equivalente a PDF vectorial y no se ha implementado ni validado exportacion vectorial.
 
 ## Pruebas pendientes
 

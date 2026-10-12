@@ -5,11 +5,10 @@
 | Alta | Fidelidad pixel-perfect y exportaciones no tienen captura/diferencia verificada. | Pendiente. |
 | Alta | Contenido muy largo puede alterar bloques visuales; detector solo registra en consola. | Pendiente de UX/validacion. |
 | Media | Solo Humanidades tiene colores especificos; otras facultades comparten tema generico. | Pendiente. |
-| Media | PDF es PNG raster embebido, no vectorial. | Limitacion actual. |
 | Media | Borrar un flyer no borra sus objetos en Storage. | Pendiente. |
 | Media | Diseños antiguos requieren Guardar de nuevo para crear artefactos. | Compatibilidad prevista. |
 | Media | QR por URL no ha sido escaneado desde una exportacion real durante la auditoria. | Pendiente de prueba. |
-| Media | El PDF sigue siendo una imagen PNG rasterizada; no conserva vectores al ampliar. | Limitacion documentada. |
+| Media | El PDF sigue siendo una imagen PNG rasterizada a 3x; no conserva vectores al ampliar. | Limitacion documentada. |
 | Media | La mejora de nitidez de pantalla/PNG requiere prueba visual en navegador y exportacion real. | Pendiente. |
 | Media | URL firmadas de imagen expiran a la hora durante una sesion abierta. | Pendiente. |
 | Baja | Biblioteca solo busca por nombre; no filtra por facultad ni ordena desde UI. | Pendiente. |
