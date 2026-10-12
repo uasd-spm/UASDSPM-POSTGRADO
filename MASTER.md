@@ -95,3 +95,5 @@ El campo **Enlace del codigo QR** valida URL absoluta HTTP/HTTPS y genera un QR 
 5. Ejecutar o registrar las pruebas que no sea posible ejecutar.
 
 Indice: [Arquitectura](docs/ARCHITECTURE.md) | [Plantilla](docs/FLYER_TEMPLATE.md) | [Componentes](docs/COMPONENTS.md) | [Base de datos](docs/DATABASE.md) | [Despliegue](docs/DEPLOYMENT.md) | [Pruebas](docs/TESTING.md) | [Mantenimiento](docs/MAINTENANCE.md).
+
+Auditoria de exportacion y nitidez: [docs/RENDERING_AUDIT.md](docs/RENDERING_AUDIT.md).

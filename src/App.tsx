@@ -50,12 +50,22 @@ export function App() {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setStatus('Use una imagen JPG, PNG o WebP.'); return }
     const reader = new FileReader(); reader.onload = () => patch(target === 'qrImage' ? { qrImage: String(reader.result), qrMode: 'image' } : { image: String(reader.result) }); reader.readAsDataURL(file)
   }
-  const renderArtifacts = async () => {
+  const waitForCanvasAssets = async () => {
     if (!canvasRef.current) throw new Error('No se encontro el lienzo para generar archivos.')
     await document.fonts.ready
+    const requiredFonts = ['400 21px Gotham', '700 31px Gotham', '900 91px Gotham', '36px UasdOld']
+    const unavailable = requiredFonts.filter(font => !document.fonts.check(font))
+    if (unavailable.length) console.warn('Fuentes institucionales no confirmadas para exportacion:', unavailable)
+    await Promise.all(Array.from(canvasRef.current.querySelectorAll('img')).map(image => image.complete ? image.decode().catch(() => undefined) : new Promise<void>(resolve => { image.addEventListener('load', () => resolve(), { once: true }); image.addEventListener('error', () => resolve(), { once: true }) })))
+  }
+  const renderArtifacts = async (pixelRatio = 1) => {
+    if (!canvasRef.current) throw new Error('No se encontro el lienzo para generar archivos.')
+    await waitForCanvasAssets()
     if (flyer.qrMode === 'url' && flyer.qrUrl && !validQrUrl(flyer.qrUrl)) throw new Error('El enlace del codigo QR debe usar http:// o https://.')
     if (flyer.qrMode === 'url' && validQrUrl(flyer.qrUrl)) { setQrData(await createQrData(flyer.qrUrl)); await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))) }
-    const pngData = await toPng(canvasRef.current, { pixelRatio: 1, width: 1080, height: 1350, cacheBust: true })
+    const pngData = await toPng(canvasRef.current, { pixelRatio, width: 1080, height: 1350, cacheBust: true, style: { transform: 'none', marginRight: '0', marginBottom: '0' } })
+    const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => { const image = new Image(); image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight }); image.onerror = () => reject(new Error('No se pudo verificar la resolucion PNG.')); image.src = pngData })
+    if (dimensions.width !== 1080 * pixelRatio || dimensions.height !== 1350 * pixelRatio) throw new Error(`Resolucion PNG inesperada: ${dimensions.width} x ${dimensions.height}.`)
     const png = await (await fetch(pngData)).blob()
     const pdf = await PDFDocument.create()
     const page = pdf.addPage([1080, 1350])
@@ -66,9 +76,9 @@ export function App() {
     try { setStatus('Guardando datos y generando archivos...'); let candidate = asNew ? { ...flyer, id: undefined, name: `${flyer.name} copia` } : flyer; if (candidate.image?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.image); candidate = { ...candidate, image: uploaded.url, imagePath: uploaded.path } } if (candidate.qrMode === 'image' && candidate.qrImage?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.qrImage); candidate = { ...candidate, qrImage: uploaded.url, qrPath: uploaded.path } } const saved = await saveFlyer(candidate); const artifacts = await renderArtifacts(); const completed = await saveFlyer({ ...saved, ...await saveFlyerArtifacts(saved, artifacts.png, artifacts.pdf) }); setFlyer(completed); await refresh(); setStatus('Diseno, PNG y PDF guardados.'); }
     catch (e) { setStatus(errorText(e)) }
   }
-  const exportPng = async () => {
+  const exportPng = async (pixelRatio = 1) => {
     if (!canvasRef.current) return
-    try { const { pngData } = await renderArtifacts(); download(pngData, `${filename(flyer.name)}.png`); }
+    try { const { pngData } = await renderArtifacts(pixelRatio); download(pngData, `${filename(flyer.name)}${pixelRatio > 1 ? `-${pixelRatio}x` : ''}.png`); }
     catch (e) { setStatus(`No se pudo exportar PNG: ${errorText(e)}`) }
   }
   const exportPdf = async () => {
@@ -92,7 +102,7 @@ export function App() {
     <main className="workspace">
       {status && <div className="toast">{status}<button onClick={() => setStatus('')}><X size={16} /></button></div>}
       {view === 'create' ? <><header className="page-head"><div><p className="eyebrow">EDITOR</p><h1>{flyer.id ? 'Editar creacion' : 'Nueva creacion'}</h1></div><div className="actions"><button className="quiet" onClick={() => setFlyer(clone(defaultFlyer))}>Restablecer</button><button className="quiet" onClick={() => save(true)}><Copy /> Como nuevo</button><button onClick={() => save()}><Save /> Guardar</button></div></header>
-        <div className="editor"><Form flyer={flyer} faculties={faculties} qrData={qrData} onPatch={patch} onFaculty={chooseFaculty} onUpload={upload} /><section className="preview-panel"><div className="preview-title"><span>Vista previa / 1080 x 1350</span><div><button onClick={exportPng}><Download /> PNG</button><button onClick={exportPdf}><Download /> PDF</button></div></div><div className="canvas-wrap"><FlyerCanvas ref={canvasRef} flyer={flyer} qrData={qrData} faculty={faculties.find(item => item.id === flyer.faculty)} /></div></section></div>
+        <div className="editor"><Form flyer={flyer} faculties={faculties} qrData={qrData} onPatch={patch} onFaculty={chooseFaculty} onUpload={upload} /><section className="preview-panel"><div className="preview-title"><span>Vista previa / 1080 x 1350</span><div><button onClick={() => exportPng()}><Download /> PNG</button><button onClick={() => exportPng(2)}><Download /> PNG 2X</button><button onClick={exportPdf}><Download /> PDF</button></div></div><div className="canvas-wrap"><FlyerCanvas ref={canvasRef} flyer={flyer} qrData={qrData} faculty={faculties.find(item => item.id === flyer.faculty)} /></div></section></div>
       </> : <><header className="page-head"><div><p className="eyebrow">ARCHIVO</p><h1>Creaciones</h1></div><button onClick={() => { setFlyer(clone(defaultFlyer)); setView('create') }}><Plus /> Nuevo flyer</button></header><div className="library-tools"><Search /><input placeholder="Buscar por nombre" value={query} onChange={e => setQuery(e.target.value)} /></div><div className="cards">{visible.map(item => <article className="card" key={item.id}><div className="thumb">{item.pngUrl ? <img src={item.pngUrl} alt={`Miniatura de ${item.name}`} /> : <FlyerCanvas flyer={item} faculty={faculties.find(f => f.id === item.faculty)} />}</div><div><h2>{item.name}</h2><p>{faculties.find(f => f.id === item.faculty)?.name || item.faculty}</p><small>Actualizado {date(item.updatedAt)}</small></div><footer><button aria-label={`Editar ${item.name}`} title="Editar" onClick={() => { setFlyer(clone(item)); setView('create') }}><Edit3 /></button><button aria-label={`Duplicar ${item.name}`} title="Duplicar" onClick={() => { setFlyer({ ...clone(item), id: undefined, name: `${item.name} copia` }); setView('create') }}><Copy /></button><button aria-label={`Ver PDF de ${item.name}`} title="Ver PDF" onClick={() => useArtifact(item, 'pdf', true)}><ExternalLink /></button><button aria-label={`Descargar PDF de ${item.name}`} title="Descargar PDF" onClick={() => useArtifact(item, 'pdf')}><FileDown /></button><button aria-label={`Descargar PNG de ${item.name}`} title="Descargar PNG" onClick={() => useArtifact(item, 'png')}><Download /></button><button aria-label={`Eliminar ${item.name}`} title="Eliminar" className="danger" onClick={async () => { if (item.id && confirm(`Eliminar ${item.name}?`)) { await removeFlyer(item.id); await refresh() } }}><Trash2 /></button></footer></article>)}{!visible.length && <p className="empty">No hay creaciones guardadas todavia.</p>}</div></>}
     </main>
   </div>

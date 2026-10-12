@@ -11,3 +11,5 @@
 El CSS importa de forma relativa `Gotham-Book.otf`, `Gotham-Bold.otf`, `Gotham-Black.otf` y `OLDENGLISH UASD.ttf`. No mover ni renombrar recursos sin actualizar imports y volver a probar el build Netlify.
 
 Los SVG deben tratarse como recursos de identidad. No se almacenan en Supabase.
+
+La auditoria XML encontro que `Header Nav.svg` y el logo de Humanidades no tienen elementos `image`, `text` ni raster embebido; el encabezado es paths vectoriales. `Logo.svg` contiene dos textos pequenos con Franklin Gothic Demi. Ver [RENDERING_AUDIT.md](RENDERING_AUDIT.md).

@@ -9,6 +9,8 @@
 | Media | Borrar un flyer no borra sus objetos en Storage. | Pendiente. |
 | Media | Diseños antiguos requieren Guardar de nuevo para crear artefactos. | Compatibilidad prevista. |
 | Media | QR por URL no ha sido escaneado desde una exportacion real durante la auditoria. | Pendiente de prueba. |
+| Media | El PDF sigue siendo una imagen PNG rasterizada; no conserva vectores al ampliar. | Limitacion documentada. |
+| Media | La mejora de nitidez de pantalla/PNG requiere prueba visual en navegador y exportacion real. | Pendiente. |
 | Media | URL firmadas de imagen expiran a la hora durante una sesion abierta. | Pendiente. |
 | Baja | Biblioteca solo busca por nombre; no filtra por facultad ni ordena desde UI. | Pendiente. |
 | Baja | `package-lock.json` no existe. | Pendiente. |
