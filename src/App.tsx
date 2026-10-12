@@ -85,12 +85,42 @@ const FormSection = ({ title, children }: { title: string; children: React.React
 const Range = ({ label, value, min, max, step = 1, onChange }: { label: string; value: number; min: number; max: number; step?: number; onChange: (v: number) => void }) => <label className="range">{label}<span>{value}</span><input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(Number(e.target.value))} /></label>
 
 const FlyerCanvas = forwardRef<HTMLDivElement, { flyer: Flyer; faculty?: Faculty }>(function FlyerCanvas({ flyer, faculty }, ref) {
+  const canvasNode = useRef<HTMLDivElement>(null)
   const style = { '--theme-primary': flyer.primary, '--theme-secondary': flyer.secondary, '--photo-position': `${flyer.imageX}% ${flyer.imageY}%`, '--photo-zoom': flyer.imageZoom } as React.CSSProperties
-  return <div ref={ref} className="flyer" style={style}>
+  useEffect(() => {
+    const canvas = canvasNode.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    const scale = 1080 / rect.width
+    const bounds = (name: string) => {
+      const element = canvas.querySelector<HTMLElement>(`[data-flyer-block="${name}"]`)
+      if (!element) return null
+      const box = element.getBoundingClientRect()
+      return { left: (box.left - rect.left) * scale, top: (box.top - rect.top) * scale, right: (box.right - rect.left) * scale, bottom: (box.bottom - rect.top) * scale }
+    }
+    const pairs = [['enrollment', 'amount'], ['amount', 'email'], ['email', 'phones'], ['requirements', 'qr'], ['requirements', 'enrollment']] as const
+    const collisions = pairs.filter(([first, second]) => {
+      const a = bounds(first); const b = bounds(second)
+      return a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+    })
+    const ribbonIntrusions = ['requirements', 'enrollment', 'amount', 'email', 'phones'].filter(name => {
+      const box = bounds(name)
+      return box && box.top > 745 && box.right > 810
+    })
+    const collisionNames = [...collisions.map(pair => pair.join(':')), ...ribbonIntrusions.map(name => `${name}:ribbon`)]
+    canvas.dataset.collisionCount = String(collisionNames.length)
+    if (collisionNames.length) console.error('Flyer text collision', collisionNames)
+  }, [flyer])
+  const setCanvas = (node: HTMLDivElement | null) => {
+    canvasNode.current = node
+    if (typeof ref === 'function') ref(node)
+    else if (ref) ref.current = node
+  }
+  return <div ref={setCanvas} className="flyer" style={style}>
     <header className="flyer-header"><img className="header-institutional" src={headerNavUrl} alt="Universidad Autonoma de Santo Domingo, Centro San Pedro de Macoris" /><div className="faculty-mark">{faculty?.logo && <img src={faculty.logo} alt={faculty.name} />}<span>{faculty?.name || 'Facultad de Humanidades'}<small>UNIDAD DE POSTGRADO</small></span></div></header>
     <section className="hero">{flyer.image ? <img className="hero-image" src={flyer.image} style={{ transform: `scale(${flyer.imageZoom})`, objectPosition: `${flyer.imageX}% ${flyer.imageY}%` }} /> : <div className="hero-placeholder">UASD<br /><small>Centro San Pedro de Macoris</small></div>}<div className="photo-wash" style={{ opacity: flyer.overlay / 100 }} /><div className="hero-fade" /></section>
-    <section className="flyer-copy"><p className="program-type">{flyer.programType}</p><h1>{flyer.title.split('\n').map((line, index) => <span key={index}>{line}</span>)}</h1><div className="rule" /><h2>{flyer.requirementsHeading}</h2><ol>{flyer.requirements.slice(0, 7).map((requirement, index) => <li key={index}>{requirement}</li>)}</ol></section>
-    <section className="flyer-bottom"><div className="qr">{flyer.showQr && (flyer.qrImage ? <img src={flyer.qrImage} /> : <QrImage value={flyer.qrUrl || 'https://uasd.edu.do'} />)}</div><div className="enrollment"><h3>{flyer.enrollment}</h3><strong>{flyer.amount}</strong></div><div className="contact"><p><b>@</b>{flyer.email}</p><p><b>W</b>{flyer.phone1}</p><p><b>W</b>{flyer.phone2}</p></div></section>
+    <section className="flyer-copy"><p className="program-type">{flyer.programType}</p><h1>{flyer.title.split('\n').map((line, index) => <span key={index}>{line}</span>)}</h1><div className="rule" /><h2>{flyer.requirementsHeading}</h2><ol data-flyer-block="requirements">{flyer.requirements.slice(0, 7).map((requirement, index) => <li key={index}>{requirement}</li>)}</ol></section>
+    <section className="flyer-bottom"><div className="qr" data-flyer-block="qr">{flyer.showQr && (flyer.qrImage ? <img src={flyer.qrImage} /> : <QrImage value={flyer.qrUrl || 'https://uasd.edu.do'} />)}</div><div className="enrollment"><h3 data-flyer-block="enrollment">{flyer.enrollment}</h3><strong data-flyer-block="amount">{flyer.amount}</strong></div><div className="contact"><p data-flyer-block="email"><b>@</b>{flyer.email}</p><p data-flyer-block="phones"><b>W</b>{flyer.phone1} / {flyer.phone2}</p></div></section>
     <svg className="ribbon" viewBox="0 0 1080 1350" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--theme-secondary)" d="M818 1350C881 1194 961 1001 1080 746V805C988 992 904 1198 851 1350Z" /><path fill="var(--theme-primary)" d="M851 1350C911 1177 991 978 1080 782V1350Z" /></svg>
   </div>
 })
