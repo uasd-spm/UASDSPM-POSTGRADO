@@ -2,11 +2,11 @@ import { forwardRef, useEffect, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 import { PDFDocument } from 'pdf-lib'
 import QRCode from 'qrcode'
-import { ArrowDown, ArrowUp, Download, Copy, Edit3, Eye, FilePlus2, ImageUp, LogOut, Plus, Save, Search, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Download, Copy, Edit3, Eye, ExternalLink, FileDown, FilePlus2, ImageUp, LogOut, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import headerNavUrl from '../Header Nav.svg?url'
 import { defaultFlyer, faculties, fallbackFaculty } from './data'
 import type { Faculty, Flyer } from './types'
-import { listFlyers, removeFlyer, saveFlyer, supabase, uploadPhoto } from './supabase'
+import { getFlyerArtifactUrl, listFlyers, removeFlyer, saveFlyer, saveFlyerArtifacts, supabase, uploadPhoto } from './supabase'
 
 type View = 'create' | 'library'
 const clone = (flyer: Flyer): Flyer => ({ ...flyer, requirements: [...flyer.requirements] })
@@ -41,21 +41,37 @@ export function App() {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setStatus('Use una imagen JPG, PNG o WebP.'); return }
     const reader = new FileReader(); reader.onload = () => patch({ [target]: String(reader.result) }); reader.readAsDataURL(file)
   }
+  const renderArtifacts = async () => {
+    if (!canvasRef.current) throw new Error('No se encontro el lienzo para generar archivos.')
+    await document.fonts.ready
+    const pngData = await toPng(canvasRef.current, { pixelRatio: 1, width: 1080, height: 1350, cacheBust: true })
+    const png = await (await fetch(pngData)).blob()
+    const pdf = await PDFDocument.create()
+    const page = pdf.addPage([1080, 1350])
+    page.drawImage(await pdf.embedPng(pngData), { x: 0, y: 0, width: 1080, height: 1350 })
+    return { pngData, png, pdf: new Blob([await pdf.save()], { type: 'application/pdf' }) }
+  }
   const save = async (asNew = false) => {
-    try { let candidate = asNew ? { ...flyer, id: undefined, name: `${flyer.name} copia` } : flyer; if (candidate.image?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.image); candidate = { ...candidate, image: uploaded.url, imagePath: uploaded.path } } if (candidate.qrImage?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.qrImage); candidate = { ...candidate, qrImage: uploaded.url, qrPath: uploaded.path } } const saved = await saveFlyer(candidate); setFlyer(saved); await refresh(); setStatus('Diseno guardado.'); }
+    try { setStatus('Guardando datos y generando archivos...'); let candidate = asNew ? { ...flyer, id: undefined, name: `${flyer.name} copia` } : flyer; if (candidate.image?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.image); candidate = { ...candidate, image: uploaded.url, imagePath: uploaded.path } } if (candidate.qrImage?.startsWith('data:') && supabase) { const uploaded = await uploadPhoto(candidate.qrImage); candidate = { ...candidate, qrImage: uploaded.url, qrPath: uploaded.path } } const saved = await saveFlyer(candidate); const artifacts = await renderArtifacts(); const completed = await saveFlyer({ ...saved, ...await saveFlyerArtifacts(saved, artifacts.png, artifacts.pdf) }); setFlyer(completed); await refresh(); setStatus('Diseno, PNG y PDF guardados.'); }
     catch (e) { setStatus(errorText(e)) }
   }
   const exportPng = async () => {
     if (!canvasRef.current) return
-    try { await document.fonts.ready; const data = await toPng(canvasRef.current, { pixelRatio: 1, width: 1080, height: 1350, cacheBust: true }); download(data, `${filename(flyer.name)}.png`); }
+    try { const { pngData } = await renderArtifacts(); download(pngData, `${filename(flyer.name)}.png`); }
     catch (e) { setStatus(`No se pudo exportar PNG: ${errorText(e)}`) }
   }
   const exportPdf = async () => {
     if (!canvasRef.current) return
-    try { await document.fonts.ready; const png = await toPng(canvasRef.current, { pixelRatio: 1, width: 1080, height: 1350, cacheBust: true }); const pdf = await PDFDocument.create(); const page = pdf.addPage([1080, 1350]); page.drawImage(await pdf.embedPng(png), { x: 0, y: 0, width: 1080, height: 1350 }); download(URL.createObjectURL(new Blob([await pdf.save()], { type: 'application/pdf' })), `${filename(flyer.name)}.pdf`); }
+    try { const { pdf } = await renderArtifacts(); download(URL.createObjectURL(pdf), `${filename(flyer.name)}.pdf`); }
     catch (e) { setStatus(`No se pudo exportar PDF: ${errorText(e)}`) }
   }
   const login = async (event: React.FormEvent) => { event.preventDefault(); if (!supabase) return; const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) setStatus(error.message) }
+  const useArtifact = async (item: Flyer, kind: 'png' | 'pdf', open = false) => {
+    const path = kind === 'png' ? item.pngPath : item.pdfPath
+    if (!path) { setFlyer(clone(item)); setView('create'); setStatus('Este diseno no tiene archivos guardados. Presione Guardar para generarlos.'); return }
+    try { const url = await getFlyerArtifactUrl(path); if (!url) throw new Error('No se encontro el archivo guardado.'); if (open) window.open(url, '_blank', 'noopener'); else download(url, `${filename(item.name)}.${kind}`) }
+    catch (e) { setStatus(errorText(e)) }
+  }
   if (session === null) return <div className="splash">Cargando sesion segura...</div>
   if (!session) return <main className="login"><section><p className="eyebrow">UASD / CENTRO SAN PEDRO</p><h1>Generador institucional de flyers</h1><p>Acceso reservado para el equipo autorizado.</p><form onSubmit={login}><label>Correo<input type="email" value={email} onChange={e => setEmail(e.target.value)} required /></label><label>Contrasena<input type="password" value={password} onChange={e => setPassword(e.target.value)} required /></label><button>Ingresar</button></form>{status && <p className="notice">{status}</p>}</section></main>
 
@@ -66,7 +82,7 @@ export function App() {
       {status && <div className="toast">{status}<button onClick={() => setStatus('')}><X size={16} /></button></div>}
       {view === 'create' ? <><header className="page-head"><div><p className="eyebrow">EDITOR</p><h1>{flyer.id ? 'Editar creacion' : 'Nueva creacion'}</h1></div><div className="actions"><button className="quiet" onClick={() => setFlyer(clone(defaultFlyer))}>Restablecer</button><button className="quiet" onClick={() => save(true)}><Copy /> Como nuevo</button><button onClick={() => save()}><Save /> Guardar</button></div></header>
         <div className="editor"><Form flyer={flyer} faculties={faculties} onPatch={patch} onFaculty={chooseFaculty} onUpload={upload} /><section className="preview-panel"><div className="preview-title"><span>Vista previa / 1080 x 1350</span><div><button onClick={exportPng}><Download /> PNG</button><button onClick={exportPdf}><Download /> PDF</button></div></div><div className="canvas-wrap"><FlyerCanvas ref={canvasRef} flyer={flyer} faculty={faculties.find(item => item.id === flyer.faculty)} /></div></section></div>
-      </> : <><header className="page-head"><div><p className="eyebrow">ARCHIVO</p><h1>Creaciones</h1></div><button onClick={() => { setFlyer(clone(defaultFlyer)); setView('create') }}><Plus /> Nuevo flyer</button></header><div className="library-tools"><Search /><input placeholder="Buscar por nombre" value={query} onChange={e => setQuery(e.target.value)} /></div><div className="cards">{visible.map(item => <article className="card" key={item.id}><div className="thumb"><FlyerCanvas flyer={item} faculty={faculties.find(f => f.id === item.faculty)} /></div><div><h2>{item.name}</h2><p>{faculties.find(f => f.id === item.faculty)?.name || item.faculty}</p><small>Actualizado {date(item.updatedAt)}</small></div><footer><button title="Editar" onClick={() => { setFlyer(clone(item)); setView('create') }}><Edit3 /></button><button title="Duplicar" onClick={() => { setFlyer({ ...clone(item), id: undefined, name: `${item.name} copia` }); setView('create') }}><Copy /></button><button title="Eliminar" className="danger" onClick={async () => { if (item.id && confirm(`Eliminar ${item.name}?`)) { await removeFlyer(item.id); await refresh() } }}><Trash2 /></button></footer></article>)}{!visible.length && <p className="empty">No hay creaciones guardadas todavia.</p>}</div></>}
+      </> : <><header className="page-head"><div><p className="eyebrow">ARCHIVO</p><h1>Creaciones</h1></div><button onClick={() => { setFlyer(clone(defaultFlyer)); setView('create') }}><Plus /> Nuevo flyer</button></header><div className="library-tools"><Search /><input placeholder="Buscar por nombre" value={query} onChange={e => setQuery(e.target.value)} /></div><div className="cards">{visible.map(item => <article className="card" key={item.id}><div className="thumb">{item.pngUrl ? <img src={item.pngUrl} alt={`Miniatura de ${item.name}`} /> : <FlyerCanvas flyer={item} faculty={faculties.find(f => f.id === item.faculty)} />}</div><div><h2>{item.name}</h2><p>{faculties.find(f => f.id === item.faculty)?.name || item.faculty}</p><small>Actualizado {date(item.updatedAt)}</small></div><footer><button aria-label={`Editar ${item.name}`} title="Editar" onClick={() => { setFlyer(clone(item)); setView('create') }}><Edit3 /></button><button aria-label={`Duplicar ${item.name}`} title="Duplicar" onClick={() => { setFlyer({ ...clone(item), id: undefined, name: `${item.name} copia` }); setView('create') }}><Copy /></button><button aria-label={`Ver PDF de ${item.name}`} title="Ver PDF" onClick={() => useArtifact(item, 'pdf', true)}><ExternalLink /></button><button aria-label={`Descargar PDF de ${item.name}`} title="Descargar PDF" onClick={() => useArtifact(item, 'pdf')}><FileDown /></button><button aria-label={`Descargar PNG de ${item.name}`} title="Descargar PNG" onClick={() => useArtifact(item, 'png')}><Download /></button><button aria-label={`Eliminar ${item.name}`} title="Eliminar" className="danger" onClick={async () => { if (item.id && confirm(`Eliminar ${item.name}?`)) { await removeFlyer(item.id); await refresh() } }}><Trash2 /></button></footer></article>)}{!visible.length && <p className="empty">No hay creaciones guardadas todavia.</p>}</div></>}
     </main>
   </div>
 }

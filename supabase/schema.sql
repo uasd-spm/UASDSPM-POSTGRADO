@@ -17,6 +17,8 @@ create table if not exists public.flyers (
   overlay numeric not null default 55,
   qr_url text not null default '',
   qr_image text,
+  png_path text,
+  pdf_path text,
   show_qr boolean not null default true,
   enrollment text not null,
   amount text not null,
@@ -26,6 +28,8 @@ create table if not exists public.flyers (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table public.flyers add column if not exists png_path text;
+alter table public.flyers add column if not exists pdf_path text;
 alter table public.flyers enable row level security;
 create policy "Users manage their flyers" on public.flyers for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -36,3 +40,4 @@ create trigger flyers_updated_at before update on public.flyers for each row exe
 create policy "Users upload their flyer images" on storage.objects for insert to authenticated with check (bucket_id = 'flyer-images' and auth.uid()::text = (storage.foldername(name))[1]);
 create policy "Users read their flyer images" on storage.objects for select to authenticated using (bucket_id = 'flyer-images' and auth.uid()::text = (storage.foldername(name))[1]);
 create policy "Users delete their flyer images" on storage.objects for delete to authenticated using (bucket_id = 'flyer-images' and auth.uid()::text = (storage.foldername(name))[1]);
+create policy "Users update their flyer images" on storage.objects for update to authenticated using (bucket_id = 'flyer-images' and auth.uid()::text = (storage.foldername(name))[1]) with check (bucket_id = 'flyer-images' and auth.uid()::text = (storage.foldername(name))[1]);

@@ -1,6 +1,6 @@
-# Generador institucional UASD San Pedro
+# Generador Institucional de Flyers - UASD Centro San Pedro de Macoris
 
-Aplicacion React/Vite para editar y exportar flyers institucionales a PNG (1080 x 1350) y PDF. Sin variables de Supabase usa `localStorage` solo para pruebas locales; no es almacenamiento multiusuario.
+Aplicacion React/Vite para crear y exportar flyers institucionales a PNG (1080 x 1350) y PDF. Sin variables Supabase usa `localStorage` solo para pruebas locales; no es persistencia multiusuario. Consulte [MASTER.md](MASTER.md) para el estado real, arquitectura, limites y guia de continuidad.
 
 ## Recursos institucionales
 
@@ -52,3 +52,7 @@ La tabla aplica RLS por `auth.uid()`. La clave anonima es publica por diseno y s
 ## Verificacion posterior
 
 Compruebe inicio de sesion, guardado y recuperacion desde dos sesiones, aislamiento de usuarios, carga de fotos, QR, PNG/PDF y los anchos 375, 768 y 1440 px. Compare una exportacion PNG contra `Modelo.png` antes de publicar una version institucional.
+
+## Documentacion
+
+El indice documental tecnico esta en [MASTER.md](MASTER.md). Los documentos especializados se encuentran en [`docs/`](docs/).
