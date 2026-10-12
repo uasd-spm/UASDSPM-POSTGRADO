@@ -16,5 +16,6 @@ No hay suite automatizada ni Node/npm disponible en el equipo auditado. No se ej
 8. Comparar PNG exportado con `Modelo.png`, generando diferencia por zonas estructurales.
 9. Guardar, recargar la biblioteca, abrir PDF y descargar ambos archivos; comprobar que editar reemplaza miniatura y archivos.
 10. Repetir sin Supabase y confirmar la persistencia local de IndexedDB.
+11. Escribir una URL HTTPS, esperar la vista QR, cambiarla, limpiar el enlace, subir QR personalizado y escanear PNG/PDF con una camara.
 
 La comparacion pixel-perfect, el QR escaneable y la persistencia remota siguen pendientes de evidencia.

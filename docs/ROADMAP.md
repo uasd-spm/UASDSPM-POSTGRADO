@@ -8,5 +8,6 @@
 6. Crear pruebas para mapeo Supabase, exportacion y geometria del canvas.
 7. Generar y versionar `package-lock.json` desde un entorno Node controlado.
 8. Verificar subida, lectura y reemplazo de artefactos con Supabase e IndexedDB reales.
+9. Escanear QR generado desde preview, PNG y PDF en un despliegue Netlify.
 
 No priorizar redisenos de panel ni nuevas plantillas antes de validar la plantilla institucional actual.

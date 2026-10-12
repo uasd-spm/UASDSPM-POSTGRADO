@@ -3,6 +3,6 @@ export type Flyer = {
   id?: string; name: string; faculty: string; primary: string; secondary: string;
   programType: string; title: string; requirementsHeading: string; requirements: string[]; image?: string; imagePath?: string;
   imageZoom: number; imageX: number; imageY: number; overlay: number;
-  qrUrl: string; qrImage?: string; qrPath?: string; pngPath?: string; pdfPath?: string; pngUrl?: string; pdfUrl?: string; showQr: boolean; enrollment: string; amount: string;
+  qrUrl: string; qrMode: 'url' | 'image'; qrImage?: string; qrPath?: string; pngPath?: string; pdfPath?: string; pngUrl?: string; pdfUrl?: string; showQr: boolean; enrollment: string; amount: string;
   email: string; phone1: string; phone2: string; createdAt?: string; updatedAt?: string
 }

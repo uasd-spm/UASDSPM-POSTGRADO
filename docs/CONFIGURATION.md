@@ -18,3 +18,5 @@ Sin ambas, `supabase` es `null`, no se solicita login y el adaptador usa `localS
 Vite usa React plugin. `src/vite-env.d.ts` referencia `vite/client`, necesario para `import.meta.env`, `import.meta.glob` e imports de assets.
 
 Antes de habilitar artefactos en un Supabase existente, ejecutar la migracion de `png_path`/`pdf_path` y la politica Storage `update` incluidas en `supabase/schema.sql`.
+
+La misma migracion agrega `qr_mode` con valores `url` o `image`; disenos anteriores con `qr_image` se recuperan en modo imagen para compatibilidad.

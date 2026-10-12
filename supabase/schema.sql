@@ -16,6 +16,7 @@ create table if not exists public.flyers (
   image_y numeric not null default 50,
   overlay numeric not null default 55,
   qr_url text not null default '',
+  qr_mode text not null default 'url' check (qr_mode in ('url', 'image')),
   qr_image text,
   png_path text,
   pdf_path text,
@@ -30,6 +31,7 @@ create table if not exists public.flyers (
 );
 alter table public.flyers add column if not exists png_path text;
 alter table public.flyers add column if not exists pdf_path text;
+alter table public.flyers add column if not exists qr_mode text not null default 'url' check (qr_mode in ('url', 'image'));
 alter table public.flyers enable row level security;
 create policy "Users manage their flyers" on public.flyers for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 

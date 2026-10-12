@@ -85,7 +85,7 @@ const toRow = (f: Flyer) => ({
   name: f.name, faculty: f.faculty, primary_color: f.primary, secondary_color: f.secondary,
   program_type: f.programType, title: f.title, requirements_heading: f.requirementsHeading, requirements: f.requirements, image_url: f.imagePath,
   image_zoom: f.imageZoom, image_x: f.imageX, image_y: f.imageY, overlay: f.overlay,
-  qr_url: f.qrUrl, qr_image: f.qrPath, png_path: f.pngPath, pdf_path: f.pdfPath, show_qr: f.showQr, enrollment: f.enrollment,
+  qr_url: f.qrUrl, qr_mode: f.qrMode, qr_image: f.qrPath, png_path: f.pngPath, pdf_path: f.pdfPath, show_qr: f.showQr, enrollment: f.enrollment,
   amount: f.amount, email: f.email, phone1: f.phone1, phone2: f.phone2,
 })
 
@@ -94,7 +94,7 @@ const fromRow = async (r: Record<string, unknown>): Promise<Flyer> => ({
   secondary: r.secondary_color as string, programType: r.program_type as string, title: r.title as string, requirementsHeading: (r.requirements_heading as string) || 'REQUISITOS DE ADMISION:',
   requirements: r.requirements as string[], image: await imageUrl(r.image_url as string | undefined), imagePath: r.image_url as string | undefined, imageZoom: Number(r.image_zoom),
   imageX: Number(r.image_x), imageY: Number(r.image_y), overlay: Number(r.overlay), qrUrl: r.qr_url as string,
-  qrImage: await imageUrl(r.qr_image as string | undefined), qrPath: r.qr_image as string | undefined, pngPath: r.png_path as string | undefined, pdfPath: r.pdf_path as string | undefined, pngUrl: await artifactUrl(r.png_path as string | undefined), pdfUrl: await artifactUrl(r.pdf_path as string | undefined), showQr: Boolean(r.show_qr), enrollment: r.enrollment as string,
+  qrMode: r.qr_mode === 'image' || (!r.qr_mode && r.qr_image) ? 'image' : 'url', qrImage: await imageUrl(r.qr_image as string | undefined), qrPath: r.qr_image as string | undefined, pngPath: r.png_path as string | undefined, pdfPath: r.pdf_path as string | undefined, pngUrl: await artifactUrl(r.png_path as string | undefined), pdfUrl: await artifactUrl(r.pdf_path as string | undefined), showQr: Boolean(r.show_qr), enrollment: r.enrollment as string,
   amount: r.amount as string, email: r.email as string, phone1: r.phone1 as string, phone2: r.phone2 as string,
   createdAt: r.created_at as string, updatedAt: r.updated_at as string,
 })
@@ -117,7 +117,7 @@ async function artifactUrl(path?: string) {
 }
 
 async function hydrateLocal(flyer: Flyer): Promise<Flyer> {
-  return { ...flyer, pngUrl: await artifactUrl(flyer.pngPath), pdfUrl: await artifactUrl(flyer.pdfPath) }
+  return { ...flyer, qrMode: flyer.qrMode || (flyer.qrImage ? 'image' : 'url'), pngUrl: await artifactUrl(flyer.pngPath), pdfUrl: await artifactUrl(flyer.pdfPath) }
 }
 
 function openLocalAssetsDb() {

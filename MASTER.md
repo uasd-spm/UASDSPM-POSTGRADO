@@ -82,6 +82,10 @@ El canvas usa `Modelo.png` como referencia, `Header Nav.svg` para el encabezado 
 
 Guardar un flyer ahora genera PNG y PDF desde el mismo canvas, los guarda en rutas permanentes por diseno y registra `png_path`/`pdf_path`. La biblioteca usa el PNG almacenado como miniatura y permite abrir/descargar ambos archivos. Esto requiere ejecutar la migracion SQL y politica Storage `update`; la prueba remota sigue pendiente.
 
+## Codigo QR
+
+El campo **Enlace del codigo QR** valida URL absoluta HTTP/HTTPS y genera un QR negro sobre blanco con correccion alta en el navegador. El modo `url` se guarda como enlace y se regenera; subir una imagen activa el modo `image`. La generacion se espera antes de crear PNG/PDF. Falta prueba con camara y exportacion real.
+
 ## Continuacion segura
 
 1. Leer este archivo y [AGENTS.md](AGENTS.md).

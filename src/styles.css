@@ -43,3 +43,4 @@
 .contact { position: absolute; left: 226px; top: 111px; width: 530px; color: #080808; font-size: 25px; line-height: 1; font-weight: 900; }.contact p { height: 39px; margin: 0 0 13px; white-space: nowrap; }.contact b { width: 38px; height: 38px; margin-right: 10px; font-size: 21px; }
 .ribbon { z-index: 2; inset: 0; width: 1080px; height: 1350px; pointer-events: none; }
 .thumb > img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.qr-editor { display: grid; gap: 8px; }.qr-form-preview { width: 104px; height: 104px; display: grid; place-items: center; border: 1px solid #cbd7e1; background: #fff; color: #718397; font-size: 10px; text-align: center; overflow: hidden; }.qr-form-preview img { width: 100%; height: 100%; image-rendering: pixelated; }.qr-clear { justify-self: start; padding: 6px 9px; font-size: 10px; }.field-error { color: #b33838; font-size: 11px; }

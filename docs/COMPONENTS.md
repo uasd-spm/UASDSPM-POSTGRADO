@@ -9,4 +9,6 @@
 | `FlyerCanvas` | Renderiza el flyer fijo y comprueba colisiones. Recibe `flyer` y `faculty`, admite ref para exportacion. |
 | `QrImage` | Genera Data URL QR desde URL con la libreria `qrcode`. |
 
+`App` mantiene una vista QR con debounce para el editor y fuerza su generacion antes de exportar. `QrImage` sirve de fallback para canvas secundarios, como miniaturas.
+
 No hay componentes de rutas, contexto global, reducer ni tests. `FlyerCanvas` se usa tanto en la previsualizacion como en las miniaturas de Creaciones; la ref principal se usa para PNG/PDF.
